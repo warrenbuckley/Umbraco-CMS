@@ -19,11 +19,22 @@
 const NPM_PACKAGE = '@umbraco-cms/backoffice';
 const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/npm';
 
-// Candidate paths in preference order (newest location first)
+// Candidate paths in preference order (newest location first).
+// v17.2.0+ uses the root path; v14.0.0–v17.1.x used dist-cms/.
 const SCHEMA_PATHS = [
   'umbraco-package-schema.json',
   'dist-cms/umbraco-package-schema.json',
 ];
+
+// Matches standard semver (with optional pre-release tag) or the literal "latest"
+const VALID_VERSION = /^(\d+\.\d+\.\d+[^\s/]*)|(latest)$/;
+
+function textResponse(body, status) {
+  return new Response(body, {
+    status,
+    headers: { 'Content-Type': 'text/plain' },
+  });
+}
 
 async function resolveLatestForMajor(major) {
   const registryUrl = `https://registry.npmjs.org/${NPM_PACKAGE}`;
@@ -56,47 +67,73 @@ export default {
     let npmVersion;
     let isImmutable = false;
 
-    if (majorLatestMatch) {
-      const major = majorLatestMatch[1].replace('v', '');
-      npmVersion = await resolveLatestForMajor(major);
-      if (!npmVersion) {
-        return new Response(`No stable release found for major version ${majorLatestMatch[1]}`, {
-          status: 404,
-        });
+    try {
+      if (majorLatestMatch) {
+        const major = majorLatestMatch[1].replace('v', '');
+        npmVersion = await resolveLatestForMajor(major);
+        if (!npmVersion) {
+          return textResponse(
+            `No stable release found for major version ${majorLatestMatch[1]}.\n` +
+            `Check https://www.npmjs.com/package/${NPM_PACKAGE}?activeTab=versions for available versions.`,
+            404,
+          );
+        }
+      } else if (exactMatch) {
+        npmVersion = exactMatch[1];
+
+        if (!VALID_VERSION.test(npmVersion)) {
+          return textResponse(
+            `Invalid version "${npmVersion}".\n\n` +
+            `Use a valid semver (e.g. 17.2.2) or "latest".\n` +
+            `Available versions: https://www.npmjs.com/package/${NPM_PACKAGE}?activeTab=versions`,
+            400,
+          );
+        }
+
+        // Concrete semver (not "latest" and not a pre-release tag like -rc) — cache forever
+        isImmutable = npmVersion !== 'latest' && /^\d+\.\d+\.\d+$/.test(npmVersion);
+      } else {
+        return textResponse(
+          [
+            'Not Found',
+            '',
+            'Valid paths:',
+            '  /umbraco-package/{version}.json          e.g. /umbraco-package/17.2.2.json',
+            '  /umbraco-package/latest.json',
+            '  /umbraco-package/v{major}/latest.json    e.g. /umbraco-package/v17/latest.json',
+            '',
+            `Schema is available from v14.0.0 onwards.`,
+          ].join('\n'),
+          404,
+        );
       }
-    } else if (exactMatch) {
-      npmVersion = exactMatch[1];
-      // A concrete semver (not "latest") is immutable — cache forever
-      isImmutable = npmVersion !== 'latest' && /^\d+\.\d+\.\d+/.test(npmVersion);
-    } else {
-      return new Response(
-        [
-          'Not Found',
-          '',
-          'Valid paths:',
-          '  /umbraco-package/{version}.json          e.g. /umbraco-package/17.2.2.json',
-          '  /umbraco-package/latest.json',
-          '  /umbraco-package/v{major}/latest.json    e.g. /umbraco-package/v17/latest.json',
-        ].join('\n'),
-        { status: 404, headers: { 'Content-Type': 'text/plain' } },
+
+      const upstream = await fetchSchema(npmVersion);
+
+      if (!upstream) {
+        return textResponse(
+          `Schema not found for version "${npmVersion}".\n\n` +
+          `The schema is available from v14.0.0 onwards.\n` +
+          `Available versions: https://www.npmjs.com/package/${NPM_PACKAGE}?activeTab=versions`,
+          404,
+        );
+      }
+
+      return new Response(upstream.body, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/schema+json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': isImmutable
+            ? 'public, max-age=31536000, immutable'
+            : 'public, max-age=300, stale-while-revalidate=60',
+        },
+      });
+    } catch (err) {
+      return textResponse(
+        `Upstream error: unable to reach the npm registry or jsDelivr. Please try again shortly.`,
+        502,
       );
     }
-
-    const upstream = await fetchSchema(npmVersion);
-
-    if (!upstream) {
-      return new Response(`Schema not found for version "${npmVersion}"`, { status: 404 });
-    }
-
-    return new Response(upstream.body, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/schema+json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': isImmutable
-          ? 'public, max-age=31536000, immutable'
-          : 'public, max-age=300, stale-while-revalidate=60',
-      },
-    });
   },
 };
