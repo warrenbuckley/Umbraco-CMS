@@ -55,8 +55,26 @@ async function fetchSchema(npmVersion) {
   return null;
 }
 
+// Cache-Control values written into cached responses (Cloudflare respects these for edge TTL)
+const CACHE_CONTROL = {
+  immutable: 'public, max-age=31536000, immutable',          // stable release — never changes
+  prerelease: 'public, max-age=3600, stale-while-revalidate=60',  // pre-release — 1 hour
+  dynamic:    'public, max-age=300, stale-while-revalidate=60',   // latest / major-latest — 5 min
+};
+
+function buildSuccessResponse(body, cacheControl) {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/schema+json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': cacheControl,
+    },
+  });
+}
+
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
     const { pathname } = new URL(request.url);
 
     // Route: /umbraco-package/{version}.json  (version = semver or "latest")
@@ -65,7 +83,7 @@ export default {
     const majorLatestMatch = pathname.match(/^\/umbraco-package\/(v\d+)\/latest\.json$/);
 
     let npmVersion;
-    let isImmutable = false;
+    let cacheControl;
 
     try {
       if (majorLatestMatch) {
@@ -78,6 +96,7 @@ export default {
             404,
           );
         }
+        cacheControl = CACHE_CONTROL.dynamic;
       } else if (exactMatch) {
         npmVersion = exactMatch[1];
 
@@ -90,8 +109,13 @@ export default {
           );
         }
 
-        // Concrete semver (not "latest" and not a pre-release tag like -rc) — cache forever
-        isImmutable = npmVersion !== 'latest' && /^\d+\.\d+\.\d+$/.test(npmVersion);
+        if (npmVersion === 'latest') {
+          cacheControl = CACHE_CONTROL.dynamic;
+        } else if (/^\d+\.\d+\.\d+$/.test(npmVersion)) {
+          cacheControl = CACHE_CONTROL.immutable;  // stable semver — npm never allows overwriting
+        } else {
+          cacheControl = CACHE_CONTROL.prerelease; // e.g. 17.4.0-rc
+        }
       } else {
         return textResponse(
           [
@@ -102,11 +126,17 @@ export default {
             '  /umbraco-package/latest.json',
             '  /umbraco-package/v{major}/latest.json    e.g. /umbraco-package/v17/latest.json',
             '',
-            `Schema is available from v14.0.0 onwards.`,
+            'Schema is available from v14.0.0 onwards.',
           ].join('\n'),
           404,
         );
       }
+
+      // Check Cloudflare's edge cache before going to jsDelivr
+      const edgeCache = caches.default;
+      const cacheKey = new Request(request.url);
+      const cached = await edgeCache.match(cacheKey);
+      if (cached) return cached;
 
       const upstream = await fetchSchema(npmVersion);
 
@@ -119,19 +149,16 @@ export default {
         );
       }
 
-      return new Response(upstream.body, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/schema+json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': isImmutable
-            ? 'public, max-age=31536000, immutable'
-            : 'public, max-age=300, stale-while-revalidate=60',
-        },
-      });
+      const [bodyForCache, bodyForResponse] = upstream.body.tee();
+      const response = buildSuccessResponse(bodyForResponse, cacheControl);
+
+      // Write to edge cache in the background — don't block the response
+      ctx.waitUntil(edgeCache.put(cacheKey, buildSuccessResponse(bodyForCache, cacheControl)));
+
+      return response;
     } catch (err) {
       return textResponse(
-        `Upstream error: unable to reach the npm registry or jsDelivr. Please try again shortly.`,
+        'Upstream error: unable to reach the npm registry or jsDelivr. Please try again shortly.',
         502,
       );
     }
