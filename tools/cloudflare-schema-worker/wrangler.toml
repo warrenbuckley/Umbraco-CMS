@@ -1,21 +1,23 @@
 # Cloudflare Worker: Umbraco JSON Schema Proxy
 #
-# Deploy:
+# Free deployment (workers.dev subdomain):
 #   npx wrangler deploy
+#   → https://umbraco-schema.<your-account>.workers.dev
 #
-# To bind to a custom domain, set ZONE_NAME and the desired hostname below,
-# then run:  npx wrangler deploy --env production
+# URL examples once deployed:
+#   /umbraco-package/17.2.2.json           specific version (immutable)
+#   /umbraco-package/latest.json           always latest npm release
+#   /umbraco-package/v17/latest.json       latest stable within major v17
 #
-# This worker can later be handed to the Umbraco team to run under
-# schema.umbraco.com (or similar).
+# To move to a custom domain later (e.g. schema.umbraco.io), uncomment
+# the routes block below and run:  npx wrangler deploy --env production
 
 name = "umbraco-schema"
 main = "index.js"
 compatibility_date = "2024-01-01"
 
-# Default deployment — available at https://umbraco-schema.<account>.workers.dev
-[env.production]
-# Uncomment and fill in to serve from a custom domain:
+# Uncomment to bind to a custom domain:
+# [env.production]
 # routes = [
-#   { pattern = "schema.umbraco.com/*", zone_name = "umbraco.com" }
+#   { pattern = "schema.umbraco.io/*", zone_name = "umbraco.io" }
 # ]
