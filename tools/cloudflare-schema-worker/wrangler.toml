@@ -16,8 +16,8 @@ name = "umbraco-schema"
 main = "index.js"
 compatibility_date = "2024-01-01"
 
-# Uncomment to bind to a custom domain:
+# Uncomment once umbschema.dev is registered and added to Cloudflare:
 # [env.production]
 # routes = [
-#   { pattern = "schema.umbraco.io/*", zone_name = "umbraco.io" }
+#   { pattern = "umbschema.dev/*", zone_name = "umbschema.dev" }
 # ]
