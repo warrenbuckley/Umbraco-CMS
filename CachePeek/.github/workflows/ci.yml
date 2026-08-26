@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      # The pinned-assumption tests assert implementation details of
+      # Microsoft.Extensions.Caching.Hybrid that the package depends on. A failure here after a
+      # dependency bump means the world moved — read docs/decisions before touching them.
+      - name: Test
+        run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=results.trx"
+
+      - name: Pack
+        run: dotnet pack --no-build --configuration Release --output ./artifacts
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: packages
+          path: ./artifacts/*.nupkg

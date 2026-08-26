@@ -1,0 +1,27 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Built against the lowest supported Umbraco. The floor is 17.0.0 and the ceiling excludes 19,
+      because ADR-0018 forbids version sniffing: everything 18-specific is a capability probe at
+      runtime, so one build serves both major lines.
+    -->
+    <PackageVersion Include="Umbraco.Cms.Api.Management" Version="[17.0.0, 19.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Test">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="NUnit" Version="4.4.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="5.1.0" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
+  </ItemGroup>
+
+</Project>

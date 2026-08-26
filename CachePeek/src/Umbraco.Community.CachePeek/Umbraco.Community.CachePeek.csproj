@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <Title>CachePeek</Title>
+    <Description>See what is actually in Umbraco's HybridCache — inspect keys and values, and evict them, from the backoffice.</Description>
+    <PackageId>Umbraco.Community.CachePeek</PackageId>
+    <RootNamespace>Umbraco.Community.CachePeek</RootNamespace>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <StaticWebAssetBasePath>/</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Umbraco.Cms.Api.Management" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+artifacts/
+node_modules/
+src/Umbraco.Community.CachePeek/wwwroot/
+TestResults/
+BenchmarkDotNet.Artifacts/
+*.nupkg
+*.snupkg

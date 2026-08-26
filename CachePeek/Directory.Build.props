@@ -1,0 +1,29 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Warren Buckley</Authors>
+    <Company>Umbraco Community</Company>
+    <Product>CachePeek</Product>
+    <Copyright>Copyright © $([System.DateTime]::Now.Year)</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/warrenbuckley/Umbraco.Community.CachePeek</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/warrenbuckley/Umbraco.Community.CachePeek</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>umbraco;umbraco-marketplace;cache;hybridcache;diagnostics</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+</Project>

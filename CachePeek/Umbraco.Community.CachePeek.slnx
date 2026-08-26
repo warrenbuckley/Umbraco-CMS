@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Umbraco.Community.CachePeek/Umbraco.Community.CachePeek.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Umbraco.Community.CachePeek.Tests/Umbraco.Community.CachePeek.Tests.csproj" />
+  </Folder>
+</Solution>
